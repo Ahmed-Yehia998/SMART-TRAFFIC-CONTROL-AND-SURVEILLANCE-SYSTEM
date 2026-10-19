@@ -161,5 +161,3 @@ Web Monitoring Dashboard
 - Build electronic system (LEDs, OLED, buttons, cameras, traffic light circuits, power)
 - Configure and test device communication
 - Network performance monitoring and troubleshooting
-
-## License
