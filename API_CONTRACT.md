@@ -8,56 +8,50 @@ Every endpoint except `/api/health` needs this header:
     X-API-Key: <your key from .env>
 
 ## Response format
-Success:
-
-    { "success": true, "data": { ... } }
-
-Error:
-
-    { "success": false, "message": "Error description" }
+Success: `{ "success": true, "data": ... }`
+Error: `{ "success": false, "message": "Error description" }`
 
 | Status | Meaning |
 |---|---|
-| 200 | OK |
+| 200 / 201 | OK / Created |
+| 400 | Bad request (missing JSON or fields) |
 | 401 | Invalid or missing API key |
 | 404 | Endpoint not found |
 | 500 | Server error |
+
+## Detection object (same fields as the AI output)
+    {
+      "INTERSECTION": 2,
+      "VEHICLES": 15,
+      "EMERGENCY": true,
+      "ACCIDENT": false,
+      "TIME": "12:30"
+    }
 
 ## Endpoints
 
 ### GET /api/health
 No key needed. Returns `{ "success": true, "data": { "status": "ok" } }`
 
-### GET /api/vehicles
-    {
-      "success": true,
-      "data": {
-        "camera_id": "cam_01",
-        "total": 42,
-        "by_type": { "car": 30, "truck": 5, "bus": 3, "motorcycle": 4 }
-      }
-    }
+### POST /api/detections
+AI sends detection results here. Body = Detection object, all 5 fields required.
+Returns 201 `{ "success": true, "data": { "saved": true } }`
+Returns 400 if the body is missing or a field is missing.
 
-### GET /api/congestion
-    {
-      "success": true,
-      "data": { "intersection_id": "int_01", "level": "high", "percentage": 85 }
-    }
+### GET /api/intersections
+Latest detection for each intersection (list of Detection objects).
+
+### GET /api/incidents
+Detections where `ACCIDENT` or `EMERGENCY` is true.
 
 ### GET /api/traffic-lights
     {
       "success": true,
-      "data": { "intersection_id": "int_01", "status": "green", "remaining_seconds": 25 }
-    }
-
-### GET /api/incidents
-    {
-      "success": true,
       "data": [
-        { "id": 1, "type": "accident", "location": "int_01",
-          "status": "active", "time": "2026-10-20T12:30:00Z" }
+        { "INTERSECTION": 2, "GREEN_SECONDS": 40, "EMERGENCY_PRIORITY": true }
       ]
     }
+`GREEN_SECONDS` is a mock rule for now.
 
 ## Setup
 1. Copy `.env.example` to `.env`
