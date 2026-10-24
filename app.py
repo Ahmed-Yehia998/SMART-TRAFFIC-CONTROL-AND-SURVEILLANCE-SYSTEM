@@ -1,9 +1,16 @@
+import logging
 import os
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger("smart-traffic")
 
 app = Flask(__name__)
 
@@ -29,6 +36,7 @@ def check_api_key():
     if request.endpoint in (None, "health"):
         return
     if request.headers.get("X-API-Key") != API_KEY:
+        logger.warning("Rejected request to %s: invalid or missing API key", request.path)
         return jsonify({"success": False, "message": "Invalid or missing API key"}), 401
 
 
@@ -41,11 +49,14 @@ def health():
 def add_detection():
     body = request.get_json(silent=True)
     if not body:
+        logger.warning("POST /api/detections: no JSON body")
         return jsonify({"success": False, "message": "JSON body required"}), 400
     missing = [f for f in REQUIRED_FIELDS if f not in body]
     if missing:
+        logger.warning("POST /api/detections: missing fields %s", missing)
         return jsonify({"success": False, "message": f"Missing fields: {', '.join(missing)}"}), 400
     detections.append({f: body[f] for f in REQUIRED_FIELDS})
+    logger.info("Saved detection for intersection %s", body["INTERSECTION"])
     return jsonify({"success": True, "data": {"saved": True}}), 201
 
 
@@ -79,8 +90,10 @@ def not_found(error):
 
 @app.errorhandler(500)
 def server_error(error):
+    logger.exception("Internal server error")
     return jsonify({"success": False, "message": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
+    logger.info("Starting Smart Traffic backend")
     app.run(debug=True)
