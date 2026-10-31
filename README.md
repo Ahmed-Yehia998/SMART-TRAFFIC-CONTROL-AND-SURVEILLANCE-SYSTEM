@@ -1,163 +1,134 @@
-# Smart Traffic Control and Surveillance System
+# Vehicle Detection, Tracking and Counting using YOLOv8
 
-An intelligent traffic management solution designed to improve urban transportation efficiency and safety through a low-cost mini smart city prototype.
+A computer vision project that detects vehicles in a video, assigns tracking IDs, and counts vehicles as they cross a predefined horizontal counting line.
 
-## Project Overview
+## Overview
 
-The **Smart Traffic Control and Surveillance System** addresses common traffic problems such as congestion, long waiting times at intersections, delayed emergency response, speeding violations, and lack of real-time traffic monitoring.
+The project uses **YOLOv8** for vehicle detection and **ByteTrack** for multi-object tracking. It focuses on three vehicle classes:
 
-The system creates a **mini smart city simulation** containing **4–6 interconnected intersections** equipped with:
+- Cars
+- Buses
+- Trucks
 
-- ESP32-S3 cameras
-- Traffic lights
-- Pedestrian buttons
-- Monitoring devices
+For each processed frame, the program displays the vehicles currently visible. It also keeps cumulative statistics for unique tracking IDs and counts the tracked vehicles that cross the counting line.
 
-Cameras collect real-time traffic information. An AI-based detection system analyzes the data to:
-
-- Identify vehicles
-- Count traffic density
-- Detect emergency vehicles
-- Recognize possible accidents
-
-Collected information is processed through a **Flask-based backend** and stored in a **Supabase** database. A web dashboard enables operators to:
-
-- Monitor all intersections
-- View traffic conditions
-- Receive alerts with location and time information
-- Track incidents (accidents or speed violations)
-
-The system automatically adjusts traffic signal timing according to traffic conditions and provides priority for emergency vehicles.
-
-By combining **IoT**, **Artificial Intelligence**, **networking**, and **web technologies**, this project delivers a practical prototype for smarter, safer, and more efficient urban traffic management.
+> **Important:** A tracking ID is not a guaranteed real-world vehicle identity. If the tracker loses a vehicle and later assigns it a new ID, the same physical vehicle may be counted more than once in the unique-track statistics. Line-crossing counts also depend on the vehicle being tracked on both sides of the line.
 
 ## Features
 
-- Real-time vehicle detection and counting using YOLO
-- Emergency vehicle priority control
-- Accident and congestion detection
-- Adaptive traffic signal timing
-- Pedestrian button support
-- Live web monitoring dashboard
-- Alerts and incident reporting with timestamps and locations
-- Speed violation tracking
-- Multi-intersection coordination (4–6 intersections)
+- Vehicle detection with the pretrained `yolov8n.pt` model.
+- Tracking with ByteTrack and persistent track IDs.
+- Detection of cars, buses, and trucks.
+- A horizontal line used for vehicle-crossing counts.
+- Separate display of currently visible vehicles, unique tracked IDs, and line crossings.
+- Export of an annotated MP4 video and CSV/JSON results.
+- Periodic sample-frame images for evaluation.
 
-## System Architecture
+## Technologies
 
-```
-Traffic Model (Simulation Input)
-        ↓
-ESP32-S3 Cameras (Edge Capture)
-        ↓
-YOLO AI Model (Vision Inference)
-        ↓
-Flask Backend API (Orchestration Layer)
-        ↓
-   ┌────┴────┐
-   ↓         ↓
-Supabase     Traffic Control
-Database     (Signal Actions)
-   ↓         ↓
-   └────┬────┘
-        ↓
-Web Monitoring Dashboard
+- Python
+- Ultralytics YOLOv8
+- OpenCV
+- ByteTrack
+- Pandas
+- ImageIO-FFmpeg
+- Jupyter Notebook / IPython
+
+## Project Requirements
+
+Install the required Python packages:
+
+```bash
+pip install ultralytics opencv-python pandas imageio-ffmpeg ipython
 ```
 
-**Continuous data loop**: Sense → Decide → Act
+The code uses `yolov8n.pt`. Ultralytics can download this model automatically when it is not already available locally. An internet connection may be required for the first run.
 
-## System Workflow
+## Input Video
 
-1. **Prototype Design**  
-   City layout, roads, intersections, camera positions, traffic light positions, and component placement.
+Set the input video path in the Python code:
 
-2. **Hardware, IoT & Network**  
-   ESP32-S3 cameras, LEDs/traffic lights, OLED displays, pedestrian buttons, Wi-Fi communication.
+```python
+VIDEO_PATH = r"C:\proj1\180386-864121573_medium.mp4"
+```
 
-3. **AI & Computer Vision**  
-   YOLO + OpenCV for vehicle detection, counting, emergency detection, accident detection, and vehicle tracking.
+Change this path to the location of your own video.
 
-4. **Backend, Database & Security**  
-   Python/Flask for traffic analysis, signal decisions, speed calculation, alerts, and data storage in Supabase (PostgreSQL).
+## How to Run
 
-5. **Frontend & Traffic Control**  
-   Live dashboard (traffic map, vehicle counts, alerts, reports) and real-time signal control (timing, emergency priority, pedestrian phase).
+1. Install the required packages.
+2. Open the project in VS Code with a Python environment or Jupyter Notebook.
+3. Make sure the input video path is correct.
+4. Run the complete processing cell.
+5. Wait for the processing and MP4 conversion to finish.
+6. Check the output directory for the generated files.
 
-## Technology Stack
+The model is initialized with:
 
-### Hardware
-- ESP32-S3
-- ESP32-S3 Camera
-- OLED Displays
-- LEDs
-- Push Buttons
-- Breadboards
-- Jumper Wires
-- Power Supply
-- Mini Road Model
-- Vehicle ID Stickers
+```python
+model = YOLO("yolov8n.pt")
+```
 
-### Software
+Vehicle classes used by the project are COCO class IDs `2` (car), `5` (bus), and `7` (truck). The counting line is positioned at 60% of the video frame height by default. Its position can be changed in the code.
 
-| Category              | Technologies                          |
-|-----------------------|---------------------------------------|
-| **Frontend**          | HTML, CSS, JavaScript                 |
-| **Backend**           | Python, Flask                         |
-| **Database**          | Supabase (PostgreSQL)                 |
-| **AI / Computer Vision** | Python, YOLO, OpenCV               |
-| **IoT / Hardware**    | Arduino C/C++, ESP32, Wiring / GPIO   |
-| **Design**            | Fusion 360, Blender                   |
+## Output Files
 
-## Communication Between Components
+The program creates the following output directory:
 
-- **Hardware → AI**  
-  Camera images / video frames
+```text
+vehicle_detection_results/
+├── annotated_vehicles.mp4
+├── frame_results.csv
+├── summary.json
+├── evaluation_template.csv
+└── evaluation_samples/
+    ├── frame_000300.jpg
+    ├── frame_000600.jpg
+    └── ...
+```
 
-- **AI → Backend**  
-  Structured detection results (JSON example):
-  ```json
-  {
-    "INTERSECTION": 2,
-    "VEHICLES": 15,
-    "EMERGENCY": true,
-    "ACCIDENT": false,
-    "TIME": "12:30"
-  }
-  ```
+| File | Description |
+|---|---|
+| `annotated_vehicles.mp4` | Video containing detection boxes, tracking IDs, the counting line, and on-screen statistics. |
+| `frame_results.csv` | Frame-by-frame visible counts, unique tracked-ID counts, and line-crossing counts. |
+| `summary.json` | Final video information and cumulative statistics. |
+| `evaluation_template.csv` | Empty template for entering manually verified counts. |
+| `evaluation_samples/` | Sample frames saved periodically for manual inspection. |
 
-- **Backend → Frontend**  
-  Traffic status, alerts, reports, statistics
+## Understanding the Counts
 
-- **Backend → Hardware**  
-  Green light duration, emergency priority commands
+The program reports three different measurements:
 
-## Team Structure & Responsibilities
+1. **Currently visible:** Vehicles detected in the current frame. This value can become zero when no vehicles are visible in that frame.
+2. **Unique tracked vehicles:** Number of different tracking IDs observed so far, grouped by vehicle class. This value is cumulative, but it may not equal the exact number of physical vehicles because tracking IDs can change.
+3. **Line crossings:** Number of tracked IDs that crossed the counting line. Each tracking ID is counted at most once, regardless of crossing direction.
 
-### Team 1 — Prototype Design & Smart City Layout
-- Design the physical smart city model and 4–6 intersection layout
-- Define road directions, dimensions, and component placement (cameras, traffic lights, OLED displays, buttons, controllers, power, wiring)
-- Create 2D/3D prototype drawings
-- Coordinate with Hardware team for physical feasibility
+A zero line-crossing count does not mean that no vehicles were detected. It may mean that no tracked vehicle crossed the line while maintaining the same tracking ID.
 
-### Team 2 — Frontend & Project Management
-- Develop the web monitoring dashboard and user interface
-- Display intersections, traffic light status, vehicle counts, density, emergency alerts, accident reports, captured images, speed violations, and event timestamps
-- Manage overall project workflow and coordinate between teams
+## Configuration
 
-### Team 3 — Backend, Database & Security
-- Develop Flask backend and REST APIs (ESP32, AI, Database, Website)
-- Implement traffic control logic (vehicle count → signal timing, emergency → priority)
-- Design Supabase database schema (intersections, traffic data, vehicles, alerts, accidents, speed violations)
-- Implement security (Row Level Security, API protection)
+You can adjust these settings in the code:
 
-### Team 4 — AI & Computer Vision
-- Implement YOLO object detection (cars, buses, trucks, emergency vehicles, pedestrians)
-- Vehicle tracking between intersections
-- Incident detection (accidents, abnormal behavior, congestion)
-- Dataset preparation, accuracy testing, and performance reports
+```python
+conf=0.30
+line_y = int(height * 0.60)
+```
 
-### Team 5 — Hardware, IoT & Networking
-- Program ESP32-S3 devices (Wi-Fi, camera data transmission, receive control commands)
-- Build electronic system (LEDs, OLED, buttons, cameras, traffic light circuits, power)
-- Configure and test device communication
-- Network performance monitoring and troubleshooting
+- `conf`: YOLO confidence threshold. Increasing it can reduce low-confidence detections; decreasing it may detect more objects but can also add false detections.
+- `line_y`: Vertical position of the counting line. The default is 60% of the frame height.
+
+The project uses `bytetrack.yaml` as its tracker configuration.
+
+## Limitations
+
+- Detection and tracking quality depend on video quality, camera angle, lighting, occlusion, and vehicle size.
+- A vehicle may receive a new tracking ID after an interruption in tracking.
+- Vehicles that do not cross the counting line are not included in the line-crossing total.
+- The evaluation template does not contain ground-truth labels. Detection accuracy, precision, recall, and other evaluation metrics must not be claimed until manually verified ground-truth annotations are added and compared with predictions.
+- The default counting line and confidence threshold may need adjustment for different videos.
+
+## Authors
+
+- **MOHAMED EMARA** 🇪🇬
+- **ZEYAD HEDAYA**
+- **ABOBAKR MOHAMED**
