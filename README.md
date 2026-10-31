@@ -1,163 +1,135 @@
-# Smart Traffic Control and Surveillance System
+# Smart Traffic Management Database
 
-An intelligent traffic management solution designed to improve urban transportation efficiency and safety through a low-cost mini smart city prototype.
+## Overview
 
-## Project Overview
+This SQL script creates the PostgreSQL database structure for a smart
+traffic management system. It defines the core entities used to
+represent road intersections, roads, cameras, vehicles, traffic lights,
+pedestrian crossing requests, traffic conditions, and alerts.
 
-The **Smart Traffic Control and Surveillance System** addresses common traffic problems such as congestion, long waiting times at intersections, delayed emergency response, speeding violations, and lack of real-time traffic monitoring.
+The script also configures an administrator role and applies PostgreSQL
+Row-Level Security (RLS) to the database tables.
 
-The system creates a **mini smart city simulation** containing **4–6 interconnected intersections** equipped with:
+## Database Structure
 
-- ESP32-S3 cameras
-- Traffic lights
-- Pedestrian buttons
-- Monitoring devices
+The schema includes the following tables:
 
-Cameras collect real-time traffic information. An AI-based detection system analyzes the data to:
+  -----------------------------------------------------------------------
+  Table                               Purpose
+  ----------------------------------- -----------------------------------
+  `intersections`                     Stores intersection names,
+                                      locations, and active/inactive
+                                      status.
 
-- Identify vehicles
-- Count traffic density
-- Detect emergency vehicles
-- Recognize possible accidents
+  `roads`                             Stores road names and their
+                                      directions (north, south, east, or
+                                      west).
 
-Collected information is processed through a **Flask-based backend** and stored in a **Supabase** database. A web dashboard enables operators to:
+  `intersection_road`                 Links roads to intersections,
+                                      supporting the many-to-many
+                                      relationship between them.
 
-- Monitor all intersections
-- View traffic conditions
-- Receive alerts with location and time information
-- Track incidents (accidents or speed violations)
+  `cameras`                           Stores camera names, statuses,
+                                      types, and associated
+                                      intersections.
 
-The system automatically adjusts traffic signal timing according to traffic conditions and provides priority for emergency vehicles.
+  `road_cameras`                      Links cameras to roads.
 
-By combining **IoT**, **Artificial Intelligence**, **networking**, and **web technologies**, this project delivers a practical prototype for smarter, safer, and more efficient urban traffic management.
+  `vehicles`                          Stores unique vehicle codes and
+                                      vehicle types.
 
-## Features
+  `traffic_light`                     Stores traffic lights and their
+                                      current states.
 
-- Real-time vehicle detection and counting using YOLO
-- Emergency vehicle priority control
-- Accident and congestion detection
-- Adaptive traffic signal timing
-- Pedestrian button support
-- Live web monitoring dashboard
-- Alerts and incident reporting with timestamps and locations
-- Speed violation tracking
-- Multi-intersection coordination (4–6 intersections)
+  `pedestrian_requests`               Tracks pedestrian crossing
+                                      requests, their statuses, and
+                                      request/completion timestamps.
 
-## System Architecture
+  `traffic_status`                    Stores traffic congestion levels,
+                                      vehicle counts, recording
+                                      timestamps, and the camera
+                                      associated with each record.
 
+  `alerts`                            Stores alert types, descriptions,
+                                      statuses, creation timestamps, and
+                                      optional related pedestrian
+                                      requests.
+
+  `alert_vehicles`                    Links alerts to the vehicles
+                                      involved.
+
+  `alert_traffic_light`               Links alerts to traffic lights.
+
+  `traffic_status_traffic_light`      Links traffic status records to
+                                      traffic lights.
+  -----------------------------------------------------------------------
+
+Identity columns are used for the primary keys of the main entity
+tables. Foreign keys define the relationships between entities, while
+composite primary keys are used in junction tables to prevent duplicate
+links.
+
+## Enumerated Types
+
+The script defines PostgreSQL ENUM types to constrain values for:
+
+-   Intersection status
+-   Road direction
+-   Camera status and type
+-   Vehicle type
+-   Traffic-light state
+-   Pedestrian-request status
+-   Congestion level
+-   Alert type and status
+
+These types keep status and category values consistent across the
+database.
+
+## Access Control and Row-Level Security
+
+The script:
+
+1.  Creates the `app_admin` role if it does not already exist.
+2.  Grants that role usage of the `public` schema, table-level `SELECT`,
+    `INSERT`, `UPDATE`, and `DELETE` privileges, and usage/select
+    privileges on sequences.
+3.  Creates the login role `admin_login` and grants it membership in
+    `app_admin`.
+4.  Enables and forces Row-Level Security on every table in the schema.
+5.  Creates an `FOR ALL` policy for `app_admin` on each table, allowing
+    members of that role to perform all table operations through the
+    policies.
+
+The final query lists the tables in the `public` schema and displays
+whether row security and forced row security are enabled.
+
+## Running the Script
+
+Run the SQL file using a PostgreSQL client or a database administration
+tool with a role that has permission to create databases, roles, types,
+tables, and policies.
+
+The script begins with:
+
+``` sql
+CREATE DATABASE test;
 ```
-Traffic Model (Simulation Input)
-        ↓
-ESP32-S3 Cameras (Edge Capture)
-        ↓
-YOLO AI Model (Vision Inference)
-        ↓
-Flask Backend API (Orchestration Layer)
-        ↓
-   ┌────┴────┐
-   ↓         ↓
-Supabase     Traffic Control
-Database     (Signal Actions)
-   ↓         ↓
-   └────┬────┘
-        ↓
-Web Monitoring Dashboard
-```
 
-**Continuous data loop**: Sense → Decide → Act
+Connect to the `test` database before running the remaining statements
+if your SQL client does not automatically switch databases after
+creating it.
 
-## System Workflow
+## Configuration Note
 
-1. **Prototype Design**  
-   City layout, roads, intersections, camera positions, traffic light positions, and component placement.
+The script currently defines the login role with the placeholder
+password `ChangeThisPassword`. Replace it with a secure password before
+using this setup outside a local or disposable development environment.
+Also ensure the `admin_login` role does not already exist, since its
+creation is not guarded by an existence check.
 
-2. **Hardware, IoT & Network**  
-   ESP32-S3 cameras, LEDs/traffic lights, OLED displays, pedestrian buttons, Wi-Fi communication.
+## Scope
 
-3. **AI & Computer Vision**  
-   YOLO + OpenCV for vehicle detection, counting, emergency detection, accident detection, and vehicle tracking.
-
-4. **Backend, Database & Security**  
-   Python/Flask for traffic analysis, signal decisions, speed calculation, alerts, and data storage in Supabase (PostgreSQL).
-
-5. **Frontend & Traffic Control**  
-   Live dashboard (traffic map, vehicle counts, alerts, reports) and real-time signal control (timing, emergency priority, pedestrian phase).
-
-## Technology Stack
-
-### Hardware
-- ESP32-S3
-- ESP32-S3 Camera
-- OLED Displays
-- LEDs
-- Push Buttons
-- Breadboards
-- Jumper Wires
-- Power Supply
-- Mini Road Model
-- Vehicle ID Stickers
-
-### Software
-
-| Category              | Technologies                          |
-|-----------------------|---------------------------------------|
-| **Frontend**          | HTML, CSS, JavaScript                 |
-| **Backend**           | Python, Flask                         |
-| **Database**          | Supabase (PostgreSQL)                 |
-| **AI / Computer Vision** | Python, YOLO, OpenCV               |
-| **IoT / Hardware**    | Arduino C/C++, ESP32, Wiring / GPIO   |
-| **Design**            | Fusion 360, Blender                   |
-
-## Communication Between Components
-
-- **Hardware → AI**  
-  Camera images / video frames
-
-- **AI → Backend**  
-  Structured detection results (JSON example):
-  ```json
-  {
-    "INTERSECTION": 2,
-    "VEHICLES": 15,
-    "EMERGENCY": true,
-    "ACCIDENT": false,
-    "TIME": "12:30"
-  }
-  ```
-
-- **Backend → Frontend**  
-  Traffic status, alerts, reports, statistics
-
-- **Backend → Hardware**  
-  Green light duration, emergency priority commands
-
-## Team Structure & Responsibilities
-
-### Team 1 — Prototype Design & Smart City Layout
-- Design the physical smart city model and 4–6 intersection layout
-- Define road directions, dimensions, and component placement (cameras, traffic lights, OLED displays, buttons, controllers, power, wiring)
-- Create 2D/3D prototype drawings
-- Coordinate with Hardware team for physical feasibility
-
-### Team 2 — Frontend & Project Management
-- Develop the web monitoring dashboard and user interface
-- Display intersections, traffic light status, vehicle counts, density, emergency alerts, accident reports, captured images, speed violations, and event timestamps
-- Manage overall project workflow and coordinate between teams
-
-### Team 3 — Backend, Database & Security
-- Develop Flask backend and REST APIs (ESP32, AI, Database, Website)
-- Implement traffic control logic (vehicle count → signal timing, emergency → priority)
-- Design Supabase database schema (intersections, traffic data, vehicles, alerts, accidents, speed violations)
-- Implement security (Row Level Security, API protection)
-
-### Team 4 — AI & Computer Vision
-- Implement YOLO object detection (cars, buses, trucks, emergency vehicles, pedestrians)
-- Vehicle tracking between intersections
-- Incident detection (accidents, abnormal behavior, congestion)
-- Dataset preparation, accuracy testing, and performance reports
-
-### Team 5 — Hardware, IoT & Networking
-- Program ESP32-S3 devices (Wi-Fi, camera data transmission, receive control commands)
-- Build electronic system (LEDs, OLED, buttons, cameras, traffic light circuits, power)
-- Configure and test device communication
-- Network performance monitoring and troubleshooting
+This SQL file provides the database schema, relationships, enumerated
+values, administrator role setup, and RLS policies. It does not define
+application APIs, user interfaces, traffic-processing logic, camera
+integrations, or automated alert-generation workflows.
